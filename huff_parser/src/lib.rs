@@ -520,45 +520,45 @@ impl Parser {
             self.match_kind(TokenKind::Returns).map_or(Ok(0), |_| self.parse_single_arg())?;
 
         let macro_statements: Vec<Statement> = self.parse_body()?;
-
-        let (body_statements_take, body_statements_return) =
-            macro_statements.iter().fold((0i16, 0i16), |acc, st| {
-                let (statement_takes, statement_returns) = match st.ty {
-                    StatementType::Literal(_) => (0i8, 1i8),
-                    StatementType::Opcode(opcode) => {
-                        let stack_changes = opcode.stack_changes();
-                        (stack_changes.0 as i8, stack_changes.1 as i8)
-                    }
-                    _ => (0i8, 0i8),
-                };
-
-                // acc.1 is always non negative
-                // acc.0 is always non positive
-                let (stack_takes, stack_returns) = if statement_takes as i16 > acc.1 {
-                    (acc.0 + acc.1 - statement_takes as i16, statement_returns as i16)
-                } else {
-                    (acc.0, acc.1 - statement_takes as i16 + statement_returns as i16)
-                };
-                (stack_takes, stack_returns)
-            });
-
+       
         if outlined {
-            if body_statements_take.abs() != macro_takes as i16 {
+
+            let final_stack_height =
+                macro_statements.iter().fold(macro_takes as i16, |height, st| {
+                    let (statement_takes, statement_returns) = match st.ty {
+                        StatementType::Literal(_) => (0i8, 1i8),
+                        StatementType::Opcode(opcode) => {
+                            let stack_changes = opcode.stack_changes();
+                            (stack_changes.0 as i8, stack_changes.1 as i8)
+                        }
+                        _ => (0i8, 0i8),
+                    };
+
+                    // acc.1 is always non negative
+                    // acc.0 is always non positive
+                    if height - (statement_takes as i16)  < 0 {
+                        return -1;
+                    }
+                    let new_height = height - (statement_takes as i16) + (statement_returns as i16);
+                    new_height
+                });
+                
+            if final_stack_height < 0 {
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Takes),
                     hint: Some(format!(
-                        "Fn {macro_name} specified to take {macro_takes} elements from the stack, but it takes {}",
-                        body_statements_take.abs()
+                        "Fn {macro_name} specified to take {macro_takes} elements from the stack, but it takes more"
                     )),
                     spans: AstSpan(self.spans.clone()),
                 });
             }
-            if body_statements_return != macro_returns as i16 {
+
+            if final_stack_height != macro_returns as i16 {
                 return Err(ParserError {
                     kind: ParserErrorKind::InvalidStackAnnotation(TokenKind::Returns),
                     hint: Some(format!(
                         "Fn {macro_name} specified to return {macro_returns} elements to the stack, but it returns {}",
-                        body_statements_return
+                        final_stack_height
                     )),
                     spans: AstSpan(self.spans.clone()),
                 });

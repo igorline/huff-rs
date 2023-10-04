@@ -913,6 +913,33 @@ fn empty_outlined_macro() {
     };
     assert_eq!(macro_definition, expected);
     assert_eq!(parser.current_token.kind, TokenKind::Eof);
+   
+}
+#[test]
+fn empty_outlined_macro_wrong_returns() {
+    let source = "#define fn HELLO_WORLD() = takes(0) returns(4) {}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source.source);
+
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    assert!(parser.parse().is_err());
+
+}
+
+#[test]
+fn empty_outlined_macro_wrong_takes() {
+    let source = "#define fn HELLO_WORLD() = takes(4) returns(0) {}";
+    let flattened_source = FullFileSource { source, file: None, spans: vec![] };
+    let lexer = Lexer::new(flattened_source.source);
+
+    let tokens = lexer.into_iter().map(|x| x.unwrap()).collect::<Vec<Token>>();
+    let mut parser = Parser::new(tokens, None);
+
+    // Grab the first macro
+    assert!(parser.parse().is_err());
 }
 
 #[test]
@@ -924,63 +951,7 @@ fn outlined_macro_with_simple_body() {
     let mut parser = Parser::new(tokens, None);
 
     // Grab the first macro
-    let macro_definition = parser.parse().unwrap().macros[0].clone();
-    let expected = MacroDefinition {
-        name: "HELLO_WORLD".to_string(),
-        decorator: None,
-        parameters: vec![],
-        statements: vec![
-            Statement {
-                ty: StatementType::Literal(str_to_bytes32("00")),
-                span: AstSpan(vec![Span { start: 51, end: 52, file: None }]),
-            },
-            Statement {
-                ty: StatementType::Opcode(Opcode::Mstore),
-                span: AstSpan(vec![Span { start: 54, end: 59, file: None }]),
-            },
-            Statement {
-                ty: StatementType::Literal(str_to_bytes32("01")),
-                span: AstSpan(vec![Span { start: 64, end: 65, file: None }]),
-            },
-            Statement {
-                ty: StatementType::Literal(str_to_bytes32("02")),
-                span: AstSpan(vec![Span { start: 69, end: 70, file: None }]),
-            },
-            Statement {
-                ty: StatementType::Opcode(Opcode::Add),
-                span: AstSpan(vec![Span { start: 72, end: 74, file: None }]),
-            },
-        ],
-        takes: 1,
-        returns: 1,
-        span: AstSpan(vec![
-            Span { start: 0, end: 6, file: None },
-            Span { start: 8, end: 9, file: None },
-            Span { start: 11, end: 21, file: None },
-            Span { start: 22, end: 22, file: None },
-            Span { start: 23, end: 23, file: None },
-            Span { start: 25, end: 25, file: None },
-            Span { start: 27, end: 31, file: None },
-            Span { start: 32, end: 32, file: None },
-            Span { start: 33, end: 33, file: None },
-            Span { start: 34, end: 34, file: None },
-            Span { start: 36, end: 42, file: None },
-            Span { start: 43, end: 43, file: None },
-            Span { start: 44, end: 44, file: None },
-            Span { start: 45, end: 45, file: None },
-            Span { start: 47, end: 47, file: None },
-            Span { start: 51, end: 52, file: None },
-            Span { start: 54, end: 59, file: None },
-            Span { start: 64, end: 65, file: None },
-            Span { start: 69, end: 70, file: None },
-            Span { start: 72, end: 74, file: None },
-            Span { start: 76, end: 76, file: None },
-        ]),
-        outlined: true,
-        test: false,
-    };
-    assert_eq!(macro_definition, expected);
-    assert_eq!(parser.current_token.kind, TokenKind::Eof);
+    assert!(parser.parse().is_err());
 }
 
 #[test]
